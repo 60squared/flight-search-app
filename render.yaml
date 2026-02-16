@@ -20,7 +20,7 @@ services:
       - key: AMADEUS_BASE_URL
         value: https://test.api.amadeus.com
       - key: FRONTEND_URL
-        sync: false
+        value: https://flight-search-app-zeta.vercel.app
       - key: PORT
         value: 10000
 
