@@ -1,6 +1,6 @@
 import { useRef } from 'react';
 import type { Flight } from '../types/flight';
-import { formatTime, formatPrice, formatStops } from '../utils/formatters';
+import { formatTime, formatPrice } from '../utils/formatters';
 
 interface FlightCardProps {
   flight: Flight;
