@@ -13,6 +13,8 @@ const AVAILABLE_AIRLINES = [
   { code: 'DL', name: 'Delta' },
   { code: 'AC', name: 'Air Canada' },
   { code: 'LX', name: 'Swiss' },
+  { code: 'WN', name: 'Southwest' },
+  { code: 'AS', name: 'Alaska Airlines' },
 ];
 
 export function AirlineFilter({ selectedAirlines, onChange, disabled }: AirlineFilterProps) {
