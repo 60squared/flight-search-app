@@ -4,8 +4,8 @@ import amadeusService from './amadeusService';
 import { normalizeAmadeusResponse } from '../utils/responseNormalizer';
 
 // Scheduler mode: 'test' for 1 minute, 'production' for 6 hours
-// Change this to switch between modes
-const SCHEDULER_MODE: 'test' | 'production' = process.env.SCHEDULER_MODE === 'production' ? 'production' : 'test';
+// Defaults to production (6 hours), set SCHEDULER_MODE=test for testing
+const SCHEDULER_MODE: 'test' | 'production' = process.env.SCHEDULER_MODE === 'test' ? 'test' : 'production';
 
 const SCHEDULER_CONFIG = {
   test: {
