@@ -28,6 +28,12 @@ router.get('/jobs/:id', monitoringController.getJobById.bind(monitoringControlle
 router.delete('/jobs/:id', monitoringController.deactivateJob.bind(monitoringController));
 
 /**
+ * DELETE /api/monitoring/jobs/:id/delete
+ * Permanently delete a monitoring job and all related data
+ */
+router.delete('/jobs/:id/delete', monitoringController.deleteJob.bind(monitoringController));
+
+/**
  * GET /api/monitoring/jobs/:id/trends
  * Get price trends for a specific job
  */

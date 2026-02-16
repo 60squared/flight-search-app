@@ -138,6 +138,25 @@ export class MonitoringController {
   }
 
   /**
+   * Delete a monitoring job permanently
+   * DELETE /api/monitoring/jobs/:id/delete
+   */
+  async deleteJob(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+
+      await monitoringService.deleteJob(id as string);
+
+      res.json({
+        success: true,
+        message: 'Monitoring job deleted successfully',
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
    * Get all alerts
    * GET /api/monitoring/alerts
    */

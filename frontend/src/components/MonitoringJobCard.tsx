@@ -9,7 +9,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
-import { deactivateMonitoringJob, triggerPriceCheck } from '../services/monitoringApi';
+import { deactivateMonitoringJob, deleteMonitoringJob, triggerPriceCheck } from '../services/monitoringApi';
 import type { MonitoringJobWithHistory, PriceTrendPoint } from '../types/monitoring';
 
 interface MonitoringJobCardProps {
@@ -18,6 +18,7 @@ interface MonitoringJobCardProps {
   schedulerMode: 'test' | 'production';
   intervalMinutes: number;
   onDeactivate?: () => void;
+  onDelete?: () => void;
   onRefresh?: () => void;
 }
 
@@ -27,9 +28,11 @@ export function MonitoringJobCard({
   schedulerMode,
   intervalMinutes,
   onDeactivate,
+  onDelete,
   onRefresh,
 }: MonitoringJobCardProps) {
   const [isDeactivating, setIsDeactivating] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
 
@@ -49,6 +52,25 @@ export function MonitoringJobCard({
       alert('Failed to deactivate monitoring job');
     } finally {
       setIsDeactivating(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!confirm('Are you sure you want to permanently delete this monitoring job? This action cannot be undone.')) {
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      await deleteMonitoringJob(job.id);
+      if (onDelete) {
+        onDelete();
+      }
+    } catch (error) {
+      console.error('Failed to delete job:', error);
+      alert('Failed to delete monitoring job');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -325,6 +347,15 @@ export function MonitoringJobCard({
                      disabled:cursor-not-allowed"
         >
           {isDeactivating ? 'Stopping...' : 'Stop Monitoring'}
+        </button>
+        <button
+          onClick={handleDelete}
+          disabled={isDeleting}
+          className="px-3 py-2 bg-red-600 text-white text-sm font-medium
+                     rounded hover:bg-red-700 transition-colors disabled:opacity-50
+                     disabled:cursor-not-allowed"
+        >
+          {isDeleting ? 'Deleting...' : 'Delete'}
         </button>
       </div>
     </div>

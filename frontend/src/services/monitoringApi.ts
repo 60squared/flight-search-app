@@ -105,6 +105,25 @@ export async function deactivateMonitoringJob(jobId: string): Promise<void> {
 }
 
 /**
+ * Delete a monitoring job permanently
+ */
+export async function deleteMonitoringJob(jobId: string): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/api/monitoring/jobs/${jobId}/delete`, {
+    method: 'DELETE',
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to delete monitoring job: ${response.statusText}`);
+  }
+
+  const result: ApiResponse<void> = await response.json();
+
+  if (!result.success) {
+    throw new Error(result.error?.message || 'Failed to delete monitoring job');
+  }
+}
+
+/**
  * Get all alerts (optionally filter by unread)
  */
 export async function getAlerts(unreadOnly: boolean = false): Promise<PriceAlert[]> {

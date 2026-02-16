@@ -121,6 +121,27 @@ class MonitoringService {
   }
 
   /**
+   * Delete a monitoring job and all related data
+   */
+  async deleteJob(jobId: string) {
+    // Delete related records first (price history and alerts)
+    await this.prisma.priceAlert.deleteMany({
+      where: { monitoringJobId: jobId },
+    });
+
+    await this.prisma.priceHistory.deleteMany({
+      where: { monitoringJobId: jobId },
+    });
+
+    // Delete the job itself
+    await this.prisma.monitoringJob.delete({
+      where: { id: jobId },
+    });
+
+    console.log(`Deleted monitoring job and related data: ${jobId}`);
+  }
+
+  /**
    * Record price snapshot for a monitoring job
    * Only saves the cheapest 3 flights
    */

@@ -248,6 +248,7 @@ export function PriceMonitoringDashboard() {
                   schedulerMode={schedulerStatus?.mode || 'test'}
                   intervalMinutes={schedulerStatus?.intervalMinutes || 1}
                   onDeactivate={handleRefresh}
+                  onDelete={handleRefresh}
                   onRefresh={handleRefresh}
                 />
               ))}
