@@ -10,7 +10,8 @@ import type {
   CreateMonitoringJobRequest,
 } from '../types/monitoring';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+// Use base URL without /api since endpoints include /api/monitoring
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api').replace('/api', '');
 
 interface ApiResponse<T> {
   success: boolean;
