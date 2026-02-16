@@ -24,9 +24,25 @@ const app: Application = express();
 const PORT = process.env.PORT || 3001;
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 
+// CORS configuration - allow multiple origins
+const allowedOrigins = [
+  'http://localhost:5173',
+  'https://flight-search-app-zeta.vercel.app',
+  FRONTEND_URL
+];
+
 // Middleware
 app.use(cors({
-  origin: FRONTEND_URL,
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, Postman, etc.)
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error(`Origin ${origin} not allowed by CORS`));
+    }
+  },
   credentials: true,
 }));
 app.use(express.json());
@@ -79,7 +95,7 @@ app.listen(PORT, () => {
   console.log(`Server running on: http://localhost:${PORT}`);
   console.log(`Health check: http://localhost:${PORT}/health`);
   console.log(`Flight search: http://localhost:${PORT}/api/flights/search`);
-  console.log(`CORS enabled for: ${FRONTEND_URL}`);
+  console.log(`CORS enabled for: ${allowedOrigins.join(', ')}`);
   console.log('='.repeat(50));
 });
 
