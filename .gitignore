@@ -44,7 +44,6 @@ coverage/
 Thumbs.db
 
 # Prisma
-backend/prisma/migrations/
 backend/prisma/dev.db
 backend/prisma/*.db
 backend/prisma/*.db-journal
