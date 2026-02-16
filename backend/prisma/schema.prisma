@@ -1,0 +1,81 @@
+// Prisma schema for flight price monitoring
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./flight-search.db"
+}
+
+model MonitoringJob {
+  id                  String         @id @default(uuid())
+  userId              String?        // Future: user identification
+  origin              String         // IATA code
+  destination         String         // IATA code
+  departureDate       String         // YYYY-MM-DD
+  returnDate          String?        // YYYY-MM-DD (optional for one-way)
+  adults              Int            @default(1)
+  travelClass         String         @default("ECONOMY")
+  airlines            String?        // JSON array of airline codes
+  isActive            Boolean        @default(true)
+  checkIntervalHours  Int            @default(6)
+  lastCheckedAt       DateTime?
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+
+  // Relations
+  priceHistory        PriceHistory[]
+  priceAlerts         PriceAlert[]
+
+  @@index([isActive, lastCheckedAt])
+  @@index([origin, destination, departureDate])
+}
+
+model PriceHistory {
+  id                String         @id @default(uuid())
+  monitoringJobId   String
+  monitoringJob     MonitoringJob  @relation(fields: [monitoringJobId], references: [id], onDelete: Cascade)
+
+  // Flight details
+  flightId          String         // Amadeus flight offer ID
+  airline           String
+  airlineCode       String
+  flightNumber      String
+  departureTime     String         // ISO datetime
+  arrivalTime       String         // ISO datetime
+  duration          String
+  stops             Int
+
+  // Price info
+  price             Float
+  currency          String
+
+  // Metadata
+  recordedAt        DateTime       @default(now())
+  bookingDate       String         // When user searched (YYYY-MM-DD)
+  travelDate        String         // Departure date (YYYY-MM-DD)
+
+  @@index([monitoringJobId, recordedAt])
+  @@index([travelDate, airlineCode])
+}
+
+model PriceAlert {
+  id                String         @id @default(uuid())
+  monitoringJobId   String
+  monitoringJob     MonitoringJob  @relation(fields: [monitoringJobId], references: [id], onDelete: Cascade)
+
+  alertType         String         // "PRICE_DROP", "SIGNIFICANT_CHANGE"
+  oldPrice          Float
+  newPrice          Float
+  percentageChange  Float
+
+  flightDetails     String         // JSON string with flight info
+
+  isRead            Boolean        @default(false)
+  createdAt         DateTime       @default(now())
+
+  @@index([monitoringJobId, isRead])
+  @@index([createdAt])
+}
