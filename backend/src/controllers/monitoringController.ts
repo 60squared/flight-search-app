@@ -273,6 +273,35 @@ export class MonitoringController {
       next(error);
     }
   }
+
+  /**
+   * Change scheduler mode (test/production)
+   * POST /api/monitoring/scheduler/mode
+   */
+  async setSchedulerMode(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { mode } = req.body;
+
+      if (mode !== 'test' && mode !== 'production') {
+        res.status(400).json({
+          success: false,
+          error: { message: 'Invalid mode. Must be "test" or "production"' },
+        });
+        return;
+      }
+
+      schedulerService.setMode(mode);
+      const status = schedulerService.getStatus();
+
+      res.json({
+        success: true,
+        data: status,
+        message: `Scheduler mode changed to ${mode}`,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 // Export singleton instance

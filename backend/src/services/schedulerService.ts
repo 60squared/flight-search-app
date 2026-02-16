@@ -165,6 +165,34 @@ class SchedulerService {
       intervalMinutes: config.intervalMinutes,
     };
   }
+
+  /**
+   * Change scheduler mode and restart
+   */
+  setMode(newMode: 'test' | 'production') {
+    if (newMode === this.mode) {
+      console.log(`Scheduler already in ${newMode} mode`);
+      return;
+    }
+
+    console.log(`Changing scheduler mode from ${this.mode} to ${newMode}`);
+    this.mode = newMode;
+
+    // Restart scheduler with new mode
+    if (this.cronJob) {
+      this.stop();
+      this.start();
+    }
+
+    console.log(`✅ Scheduler mode changed to ${newMode}`);
+  }
+
+  /**
+   * Get current mode
+   */
+  getMode() {
+    return this.mode;
+  }
 }
 
 // Export singleton instance

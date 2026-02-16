@@ -215,3 +215,38 @@ export async function getSchedulerStatus(): Promise<{
 
   return result.data;
 }
+
+/**
+ * Change scheduler mode (test/production)
+ */
+export async function setSchedulerMode(mode: 'test' | 'production'): Promise<{
+  isScheduled: boolean;
+  isRunning: boolean;
+  mode: 'test' | 'production';
+  schedule: string;
+  intervalMinutes: number;
+}> {
+  const response = await fetch(`${API_BASE_URL}/api/monitoring/scheduler/mode`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ mode }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to set scheduler mode: ${response.statusText}`);
+  }
+
+  const result: ApiResponse<{
+    isScheduled: boolean;
+    isRunning: boolean;
+    mode: 'test' | 'production';
+    schedule: string;
+    intervalMinutes: number;
+  }> = await response.json();
+
+  if (!result.success || !result.data) {
+    throw new Error(result.error?.message || 'Failed to set scheduler mode');
+  }
+
+  return result.data;
+}

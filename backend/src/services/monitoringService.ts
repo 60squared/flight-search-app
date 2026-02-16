@@ -122,6 +122,7 @@ class MonitoringService {
 
   /**
    * Record price snapshot for a monitoring job
+   * Only saves the cheapest 3 flights
    */
   async recordPriceSnapshot(jobId: string, flights: Flight[]) {
     if (flights.length === 0) {
@@ -129,10 +130,15 @@ class MonitoringService {
       return;
     }
 
+    // Sort by price and take only the cheapest 3
+    const cheapestFlights = flights
+      .sort((a, b) => a.price.amount - b.price.amount)
+      .slice(0, 3);
+
     const bookingDate = new Date().toISOString().split('T')[0];
 
     // Record each flight's price
-    const priceRecords = flights.map((flight) => ({
+    const priceRecords = cheapestFlights.map((flight) => ({
       monitoringJobId: jobId,
       flightId: flight.id,
       airline: flight.airline,
@@ -152,7 +158,7 @@ class MonitoringService {
       data: priceRecords,
     });
 
-    console.log(`Recorded ${priceRecords.length} price records for job ${jobId}`);
+    console.log(`Recorded ${priceRecords.length} cheapest price records for job ${jobId} (from ${flights.length} total flights)`);
   }
 
   /**
@@ -269,7 +275,7 @@ class MonitoringService {
 
   /**
    * Get price trends for a monitoring job
-   * Returns aggregated price data over time
+   * Returns individual flight price data over time (top 3 cheapest flights)
    */
   async getPriceTrends(jobId: string) {
     const history = await this.prisma.priceHistory.findMany({
@@ -277,33 +283,36 @@ class MonitoringService {
       orderBy: { recordedAt: 'asc' },
     });
 
-    // Group by booking date and calculate averages
-    const trendMap = new Map<string, { sum: number; count: number; min: number; max: number }>();
-
-    for (const record of history) {
-      const existing = trendMap.get(record.bookingDate) || {
-        sum: 0,
-        count: 0,
-        min: Infinity,
-        max: -Infinity,
-      };
-
-      existing.sum += record.price;
-      existing.count += 1;
-      existing.min = Math.min(existing.min, record.price);
-      existing.max = Math.max(existing.max, record.price);
-
-      trendMap.set(record.bookingDate, existing);
+    if (history.length === 0) {
+      return [];
     }
 
-    // Convert to array with averages
-    const trends = Array.from(trendMap.entries()).map(([date, stats]) => ({
-      date,
-      avgPrice: stats.sum / stats.count,
-      minPrice: stats.min,
-      maxPrice: stats.max,
-      sampleSize: stats.count,
-    }));
+    // Group by recordedAt timestamp to get data points
+    const timePointsMap = new Map<string, typeof history>();
+
+    for (const record of history) {
+      const timestamp = record.recordedAt.toISOString();
+      const existing = timePointsMap.get(timestamp) || [];
+      existing.push(record);
+      timePointsMap.set(timestamp, existing);
+    }
+
+    // Convert to array format with individual flight prices
+    const trends = Array.from(timePointsMap.entries()).map(([timestamp, records]) => {
+      // Sort by price to maintain consistent ordering (cheapest first)
+      const sortedRecords = records.sort((a, b) => a.price - b.price);
+
+      return {
+        timestamp,
+        flights: sortedRecords.map((record) => ({
+          flightId: record.flightId,
+          airline: record.airline,
+          flightNumber: record.flightNumber,
+          price: record.price,
+          currency: record.currency,
+        })),
+      };
+    });
 
     return trends;
   }

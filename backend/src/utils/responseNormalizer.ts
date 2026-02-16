@@ -27,36 +27,40 @@ function normalizeFlightOffer(
   carriers: { [key: string]: string }
 ): Flight {
   // Get the first itinerary (outbound flight)
-  const itinerary = offer.itineraries[0];
-  const firstSegment = itinerary.segments[0];
-  const lastSegment = itinerary.segments[itinerary.segments.length - 1];
+  const firstItinerary = offer.itineraries[0];
+  const firstSegment = firstItinerary.segments[0];
+  // For arrival, use last segment of FIRST itinerary (outbound destination, e.g. CDG)
+  // NOT last segment of last itinerary (which would be return to origin, e.g. SFO)
+  const lastSegmentOfOutbound = firstItinerary.segments[firstItinerary.segments.length - 1];
 
   // Get carrier name and code
   const carrierCode = firstSegment.carrierCode;
   const carrierName = carriers[carrierCode] || carrierCode;
 
-  // Calculate number of stops (segments - 1)
-  const stops = itinerary.segments.length - 1;
+  // Calculate number of stops for the FIRST itinerary (for display purposes)
+  const stops = firstItinerary.segments.length - 1;
 
   // Build flight number (use first segment's flight number)
   const flightNumber = `${carrierCode}${firstSegment.number}`;
 
-  // Map segments to our FlightSegment type
-  const segments: FlightSegment[] = itinerary.segments.map((seg) => ({
-    departure: {
-      iataCode: seg.departure.iataCode,
-      terminal: seg.departure.terminal,
-      at: seg.departure.at,
-    },
-    arrival: {
-      iataCode: seg.arrival.iataCode,
-      terminal: seg.arrival.terminal,
-      at: seg.arrival.at,
-    },
-    carrierCode: seg.carrierCode,
-    number: seg.number,
-    duration: formatDuration(seg.duration),
-  }));
+  // Map segments from ALL itineraries (outbound + return for round-trips)
+  const segments: FlightSegment[] = offer.itineraries.flatMap((itinerary) =>
+    itinerary.segments.map((seg) => ({
+      departure: {
+        iataCode: seg.departure.iataCode,
+        terminal: seg.departure.terminal,
+        at: seg.departure.at,
+      },
+      arrival: {
+        iataCode: seg.arrival.iataCode,
+        terminal: seg.arrival.terminal,
+        at: seg.arrival.at,
+      },
+      carrierCode: seg.carrierCode,
+      number: seg.number,
+      duration: formatDuration(seg.duration),
+    }))
+  );
 
   // Build the normalized flight object
   const flight: Flight = {
@@ -70,11 +74,11 @@ function normalizeFlightOffer(
       terminal: firstSegment.departure.terminal,
     },
     arrival: {
-      airport: lastSegment.arrival.iataCode,
-      time: lastSegment.arrival.at,
-      terminal: lastSegment.arrival.terminal,
+      airport: lastSegmentOfOutbound.arrival.iataCode,
+      time: lastSegmentOfOutbound.arrival.at,
+      terminal: lastSegmentOfOutbound.arrival.terminal,
     },
-    duration: formatDuration(itinerary.duration),
+    duration: formatDuration(firstItinerary.duration),
     stops,
     price: {
       amount: parseFloat(offer.price.grandTotal),

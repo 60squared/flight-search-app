@@ -87,12 +87,29 @@ export function MonitoringJobCard({
     ? new Date(job.lastCheckedAt).toLocaleString()
     : 'Never';
 
-  const chartData = trends.map((trend) => ({
-    date: formatDate(trend.date),
-    lowest: trend.lowestPrice,
-    average: trend.averagePrice,
-    highest: trend.highestPrice,
-  }));
+  // Transform trends data to chart format
+  // Each trend point has up to 3 flights, we'll create data points with all 3 flight prices
+  const chartData = trends.map((trend) => {
+    const dataPoint: any = {
+      timestamp: formatDate(trend.timestamp),
+    };
+
+    // Add each flight's price as a separate data key
+    trend.flights.forEach((flight, index) => {
+      dataPoint[`flight${index + 1}`] = flight.price;
+      dataPoint[`flight${index + 1}Label`] = `${flight.airline} ${flight.flightNumber}`;
+    });
+
+    return dataPoint;
+  });
+
+  // Get unique flight labels for the legend (from the first data point)
+  const flightLabels = trends.length > 0 && trends[0].flights.length > 0
+    ? trends[0].flights.map((flight, index) => ({
+        key: `flight${index + 1}`,
+        label: `${flight.airline} ${flight.flightNumber}`,
+      }))
+    : [];
 
   return (
     <div className="border border-gray-200 rounded-lg p-5 shadow-sm hover:shadow-md transition-shadow bg-white">
@@ -160,7 +177,7 @@ export function MonitoringJobCard({
             <LineChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
               <XAxis
-                dataKey="date"
+                dataKey="timestamp"
                 tick={{ fontSize: 10 }}
                 stroke="#6b7280"
                 angle={-45}
@@ -184,30 +201,20 @@ export function MonitoringJobCard({
                 }}
               />
               <Legend wrapperStyle={{ fontSize: '12px' }} />
-              <Line
-                type="monotone"
-                dataKey="lowest"
-                stroke="#10b981"
-                strokeWidth={2}
-                name="Lowest"
-                dot={{ r: 3 }}
-              />
-              <Line
-                type="monotone"
-                dataKey="average"
-                stroke="#3b82f6"
-                strokeWidth={2}
-                name="Average"
-                dot={{ r: 3 }}
-              />
-              <Line
-                type="monotone"
-                dataKey="highest"
-                stroke="#ef4444"
-                strokeWidth={2}
-                name="Highest"
-                dot={{ r: 3 }}
-              />
+              {flightLabels.map((flight, index) => (
+                <Line
+                  key={flight.key}
+                  type="monotone"
+                  dataKey={flight.key}
+                  stroke={
+                    index === 0 ? '#10b981' : index === 1 ? '#3b82f6' : '#f59e0b'
+                  }
+                  strokeWidth={2}
+                  name={flight.label}
+                  dot={{ r: 3 }}
+                  connectNulls
+                />
+              ))}
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -245,22 +252,56 @@ export function MonitoringJobCard({
 
       {/* Price History Details */}
       {showDetails && job.priceHistory && job.priceHistory.length > 0 && (
-        <div className="mb-4 max-h-48 overflow-y-auto">
+        <div className="mb-4 max-h-96 overflow-y-auto">
           <h4 className="text-sm font-semibold text-gray-700 mb-2">Price History</h4>
-          <div className="space-y-1">
-            {job.priceHistory.slice(0, 10).map((entry) => (
-              <div
-                key={entry.id}
-                className="text-xs bg-gray-50 rounded p-2 flex justify-between items-center"
-              >
-                <span className="text-gray-600">
-                  {new Date(entry.recordedAt).toLocaleString()}
-                </span>
-                <span className="font-medium text-gray-800">
-                  ${entry.price} - {entry.airline} {entry.flightNumber}
-                </span>
-              </div>
-            ))}
+          <div className="space-y-2">
+            {job.priceHistory.slice(0, 20).map((entry) => {
+              const depTime = new Date(entry.departureTime);
+              const arrTime = new Date(entry.arrivalTime);
+
+              return (
+                <div
+                  key={entry.id}
+                  className="text-xs bg-gray-50 rounded p-3 border border-gray-200"
+                >
+                  {/* Header: Recorded date and price */}
+                  <div className="flex justify-between items-start mb-2 pb-2 border-b border-gray-200">
+                    <div>
+                      <div className="font-semibold text-gray-700">
+                        Recorded: {new Date(entry.recordedAt).toLocaleString()}
+                      </div>
+                      <div className="text-gray-500 mt-0.5">
+                        Travel Date: {new Date(entry.travelDate).toLocaleDateString()}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-lg font-bold text-green-700">${entry.price}</div>
+                      <div className="text-gray-500">{entry.currency}</div>
+                    </div>
+                  </div>
+
+                  {/* Flight Details */}
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold text-blue-700">
+                        {entry.airline} ({entry.airlineCode}) {entry.flightNumber}
+                      </span>
+                      <span className="text-gray-600">
+                        {entry.stops === 0 ? 'Non-stop' : `${entry.stops} stop${entry.stops > 1 ? 's' : ''}`}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center space-x-2 text-gray-700">
+                      <span className="font-medium">{entry.departureTime.split('T')[0].slice(5)}</span>
+                      <span>{depTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</span>
+                      <span>→</span>
+                      <span>{arrTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</span>
+                      <span className="text-gray-500">({entry.duration})</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

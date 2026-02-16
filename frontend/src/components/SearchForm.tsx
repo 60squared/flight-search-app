@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useState, useEffect, type FormEvent } from 'react';
 import type { FlightSearchParams } from '../types/flight';
 import { getMinDate, isValidIataCode, formatDateForApi } from '../utils/formatters';
 import { AirlineFilter } from './AirlineFilter';
@@ -6,6 +6,7 @@ import { DateRangeToggle } from './DateRangeToggle';
 
 interface SearchFormProps {
   onSearch: (params: FlightSearchParams) => void;
+  onFilterChange?: (maxStops: number) => void;
   isLoading?: boolean;
 }
 
@@ -23,16 +24,55 @@ const getOneWeekFromTomorrow = (): string => {
   return formatDateForApi(oneWeek);
 };
 
-export function SearchForm({ onSearch, isLoading = false }: SearchFormProps) {
-  const [tripType, setTripType] = useState<'one-way' | 'round-trip'>('round-trip');
-  const [origin, setOrigin] = useState('SFO');
-  const [destination, setDestination] = useState('CDG');
-  const [departureDate, setDepartureDate] = useState(getTomorrowDate());
-  const [returnDate, setReturnDate] = useState(getOneWeekFromTomorrow());
-  const [adults, setAdults] = useState(1);
-  const [selectedAirlines, setSelectedAirlines] = useState<string[]>([]);
-  const [dateRangeEnabled, setDateRangeEnabled] = useState(false);
+export function SearchForm({ onSearch, onFilterChange, isLoading = false }: SearchFormProps) {
+  // Load saved settings from localStorage or use defaults
+  const loadSavedSettings = () => {
+    try {
+      const saved = localStorage.getItem('flightSearchSettings');
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch (error) {
+      console.error('Error loading saved settings:', error);
+    }
+    return null;
+  };
+
+  const savedSettings = loadSavedSettings();
+
+  const [tripType, setTripType] = useState<'one-way' | 'round-trip'>(savedSettings?.tripType || 'round-trip');
+  const [origin, setOrigin] = useState(savedSettings?.origin || 'SFO');
+  const [destination, setDestination] = useState(savedSettings?.destination || 'CDG');
+  const [departureDate, setDepartureDate] = useState(savedSettings?.departureDate || getTomorrowDate());
+  const [returnDate, setReturnDate] = useState(savedSettings?.returnDate || getOneWeekFromTomorrow());
+  const [adults, setAdults] = useState(savedSettings?.adults || 1);
+  const [selectedAirlines, setSelectedAirlines] = useState<string[]>(savedSettings?.airlines || []);
+  const [dateRangeEnabled, setDateRangeEnabled] = useState(savedSettings?.dateRange || false);
+  const [maxStops, setMaxStops] = useState<number>(savedSettings?.maxStops ?? 0); // Default to non-stop
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Save settings to localStorage whenever they change
+  useEffect(() => {
+    const settings = {
+      tripType,
+      origin,
+      destination,
+      departureDate,
+      returnDate,
+      adults,
+      airlines: selectedAirlines,
+      dateRange: dateRangeEnabled,
+      maxStops,
+    };
+    localStorage.setItem('flightSearchSettings', JSON.stringify(settings));
+  }, [tripType, origin, destination, departureDate, returnDate, adults, selectedAirlines, dateRangeEnabled, maxStops]);
+
+  // Notify parent of filter changes
+  useEffect(() => {
+    if (onFilterChange) {
+      onFilterChange(maxStops);
+    }
+  }, [maxStops, onFilterChange]);
 
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -150,6 +190,49 @@ export function SearchForm({ onSearch, isLoading = false }: SearchFormProps) {
           onChange={setDateRangeEnabled}
           disabled={isLoading}
         />
+      </div>
+
+      {/* Stops Filter */}
+      <div className="mb-6">
+        <label className="block text-sm font-medium text-gray-700 mb-2">Number of Stops</label>
+        <div className="flex items-center space-x-6">
+          <label className="flex items-center cursor-pointer">
+            <input
+              type="radio"
+              name="stops"
+              value="0"
+              checked={maxStops === 0}
+              onChange={() => setMaxStops(0)}
+              className="mr-2 h-4 w-4 text-primary-600 focus:ring-primary-500"
+              disabled={isLoading}
+            />
+            <span className="text-sm font-medium text-gray-700">Non-stop</span>
+          </label>
+          <label className="flex items-center cursor-pointer">
+            <input
+              type="radio"
+              name="stops"
+              value="1"
+              checked={maxStops === 1}
+              onChange={() => setMaxStops(1)}
+              className="mr-2 h-4 w-4 text-primary-600 focus:ring-primary-500"
+              disabled={isLoading}
+            />
+            <span className="text-sm font-medium text-gray-700">1 Stop</span>
+          </label>
+          <label className="flex items-center cursor-pointer">
+            <input
+              type="radio"
+              name="stops"
+              value="99"
+              checked={maxStops === 99}
+              onChange={() => setMaxStops(99)}
+              className="mr-2 h-4 w-4 text-primary-600 focus:ring-primary-500"
+              disabled={isLoading}
+            />
+            <span className="text-sm font-medium text-gray-700">1+ Stops</span>
+          </label>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

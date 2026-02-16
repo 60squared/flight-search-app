@@ -22,11 +22,16 @@ const queryClient = new QueryClient({
 function FlightSearchApp() {
   const [activeTab, setActiveTab] = useState<'search' | 'monitoring'>('search');
   const [lastSearchParams, setLastSearchParams] = useState<FlightSearchParams | null>(null);
+  const [maxStops, setMaxStops] = useState<number>(0); // Default to non-stop
   const { mutate: searchFlights, data, isPending, isError, error } = useFlightSearch();
 
   const handleSearch = (params: FlightSearchParams) => {
     searchFlights(params);
     setLastSearchParams(params);
+  };
+
+  const handleFilterChange = (stops: number) => {
+    setMaxStops(stops);
   };
 
   return (
@@ -74,7 +79,7 @@ function FlightSearchApp() {
         {activeTab === 'search' && (
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             {/* Search form */}
-            <SearchForm onSearch={handleSearch} isLoading={isPending} />
+            <SearchForm onSearch={handleSearch} onFilterChange={handleFilterChange} isLoading={isPending} />
 
             {/* Results section */}
             <div className="mt-8">
@@ -137,7 +142,7 @@ function FlightSearchApp() {
                       </p>
                     </div>
                   )}
-                  <FlightList flights={data.data} />
+                  <FlightList flights={data.data} maxStops={maxStops} />
                 </div>
               )}
             </div>

@@ -1,17 +1,19 @@
 import { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   getMonitoringJobs,
   getMonitoringJobById,
   getAlerts,
   getPriceTrends,
   getSchedulerStatus,
+  setSchedulerMode,
 } from '../services/monitoringApi';
 import { MonitoringJobCard } from './MonitoringJobCard';
 import { PriceAlertCard } from './PriceAlertCard';
 import type { MonitoringJobWithHistory, PriceTrendPoint } from '../types/monitoring';
 
 export function PriceMonitoringDashboard() {
+  const queryClient = useQueryClient();
   const [selectedTab, setSelectedTab] = useState<'jobs' | 'alerts'>('jobs');
   const [jobsWithDetails, setJobsWithDetails] = useState<
     Array<{ job: MonitoringJobWithHistory; trends: PriceTrendPoint[] }>
@@ -46,6 +48,19 @@ export function PriceMonitoringDashboard() {
     queryKey: ['scheduler-status'],
     queryFn: getSchedulerStatus,
     refetchInterval: 60000, // Refetch every minute
+  });
+
+  // Mutation for changing scheduler mode
+  const { mutate: changeSchedulerMode, isPending: isChangingMode } = useMutation({
+    mutationFn: setSchedulerMode,
+    onSuccess: () => {
+      // Invalidate and refetch scheduler status
+      queryClient.invalidateQueries({ queryKey: ['scheduler-status'] });
+    },
+    onError: (error) => {
+      console.error('Failed to change scheduler mode:', error);
+      alert('Failed to change scheduler mode. Please try again.');
+    },
   });
 
   // Fetch detailed data for each job
@@ -88,31 +103,66 @@ export function PriceMonitoringDashboard() {
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold text-gray-800">Price Monitoring</h1>
-          <button
-            onClick={handleRefresh}
-            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200
-                       transition-colors text-sm font-medium"
-          >
-            <svg
-              className="w-4 h-4 inline-block mr-1"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
+          <div>
+            <h1 className="text-3xl font-bold text-gray-800">Price Monitoring</h1>
+            <p className="text-gray-600 mt-2">
+              Monitor flight prices and get alerts when prices drop
+            </p>
+          </div>
+          <div className="flex items-center space-x-3">
+            {/* Scheduler Mode Toggle */}
+            <div className="bg-white border border-gray-200 rounded-lg px-4 py-2">
+              <label className="block text-xs font-medium text-gray-600 mb-1">
+                Scheduler Mode
+              </label>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => changeSchedulerMode('test')}
+                  disabled={isChangingMode || schedulerStatus?.mode === 'test'}
+                  className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                    schedulerStatus?.mode === 'test'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  } ${isChangingMode ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  Test (1 min)
+                </button>
+                <button
+                  onClick={() => changeSchedulerMode('production')}
+                  disabled={isChangingMode || schedulerStatus?.mode === 'production'}
+                  className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                    schedulerStatus?.mode === 'production'
+                      ? 'bg-green-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  } ${isChangingMode ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  Production (6 hrs)
+                </button>
+              </div>
+            </div>
+            {/* Refresh Button */}
+            <button
+              onClick={handleRefresh}
+              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200
+                         transition-colors text-sm font-medium"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-              />
-            </svg>
-            Refresh
-          </button>
+              <svg
+                className="w-4 h-4 inline-block mr-1"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                />
+              </svg>
+              Refresh
+            </button>
+          </div>
         </div>
-        <p className="text-gray-600 mt-2">
-          Monitor flight prices and get alerts when prices drop
-        </p>
       </div>
 
       {/* Tabs */}

@@ -5,26 +5,32 @@ import { durationToMinutes } from '../utils/formatters';
 
 interface FlightListProps {
   flights: Flight[];
+  maxStops?: number;
 }
 
-export function FlightList({ flights }: FlightListProps) {
+export function FlightList({ flights, maxStops = 99 }: FlightListProps) {
   const [sortBy, setSortBy] = useState<SortOption>('price');
 
-  // Sort flights based on selected option
+  // Filter and sort flights
   const sortedFlights = useMemo(() => {
-    const sorted = [...flights];
+    // First filter by stops
+    let filtered = [...flights];
+    if (maxStops < 99) {
+      filtered = filtered.filter(flight => flight.stops <= maxStops);
+    }
 
+    // Then sort
     switch (sortBy) {
       case 'price':
-        sorted.sort((a, b) => a.price.amount - b.price.amount);
+        filtered.sort((a, b) => a.price.amount - b.price.amount);
         break;
       case 'duration':
-        sorted.sort(
+        filtered.sort(
           (a, b) => durationToMinutes(a.duration) - durationToMinutes(b.duration)
         );
         break;
       case 'departure':
-        sorted.sort(
+        filtered.sort(
           (a, b) =>
             new Date(a.departure.time).getTime() -
             new Date(b.departure.time).getTime()
@@ -32,10 +38,10 @@ export function FlightList({ flights }: FlightListProps) {
         break;
     }
 
-    return sorted;
-  }, [flights, sortBy]);
+    return filtered;
+  }, [flights, sortBy, maxStops]);
 
-  if (flights.length === 0) {
+  if (sortedFlights.length === 0) {
     return (
       <div className="text-center py-12">
         <svg

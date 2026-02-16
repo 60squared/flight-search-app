@@ -49,11 +49,14 @@ export interface PriceAlert {
 }
 
 export interface PriceTrendPoint {
-  date: string;
-  lowestPrice: number;
-  averagePrice: number;
-  highestPrice: number;
-  flightCount: number;
+  timestamp: string;
+  flights: Array<{
+    flightId: string;
+    airline: string;
+    flightNumber: string;
+    price: number;
+    currency: string;
+  }>;
 }
 
 export interface CreateMonitoringJobRequest {

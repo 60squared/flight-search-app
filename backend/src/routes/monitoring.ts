@@ -57,4 +57,10 @@ router.patch('/alerts/:id/read', monitoringController.markAlertRead.bind(monitor
  */
 router.get('/scheduler/status', monitoringController.getSchedulerStatus.bind(monitoringController));
 
+/**
+ * POST /api/monitoring/scheduler/mode
+ * Change scheduler mode (test/production)
+ */
+router.post('/scheduler/mode', monitoringController.setSchedulerMode.bind(monitoringController));
+
 export default router;
